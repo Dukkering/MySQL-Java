@@ -14,16 +14,19 @@ public class ProjectsApp {
 	private Scanner scanner = new Scanner(System.in);
 	private ProjectService projectService = new ProjectService();
 	private Project curProject;
-	
+
 	/*
-	 * Creates a list of operations; Basically a long String, but this will be called on repeatedly and is
-	 * easier to add to and update than a literal large string full of /n line breaks.
+	 * Creates a list of operations; Basically a long String, but this will be
+	 * called on repeatedly and is easier to add to and update than a literal large
+	 * string full of /n line breaks.
 	 */
 	// @formatter:off
 	private List<String> operations = List.of(
 			"1) Add A Project",
 			"2) List Projects",
-			"3) Select a project"
+			"3) Select a project",
+			"4) Update project details",
+			"5) Delete a project"
 			);
 	// @formatter:on
 
@@ -52,15 +55,23 @@ public class ProjectsApp {
 				case 1:
 					createProject();
 					break;
-					
+
 				case 2:
 					listProjects();
 					break;
-				
+
 				case 3:
 					selectProject();
 					break;
+
+				case 4:
+					updateProjectDetails();
+					break;
 					
+				case 5:
+					deleteProject();
+					break;
+
 				default:
 					System.out.println("\n" + selection + " is not a valid selection. Please try again.");
 					break;
@@ -71,35 +82,89 @@ public class ProjectsApp {
 			}
 		}
 	}
-	/*
-	 * Selects a project from the database via the project ID; First lists the projects in alphabetical
-	 * order, sets the current project to null to open up the variable, and then runs through the service
-	 * level to the DAO level to parse the database for the correct information.
-	 */
-private void selectProject() {
+
+	private void deleteProject() {
 		listProjects();
-		Integer projectId = getIntInput("Enter a project ID to select a project.");
+		Integer projectId = getIntInput(
+				"Enter the ID # of the project to delete; THIS CANNOT BE UNDONE.");
 		
-		curProject = null;
+		projectService.deleteProject(projectId);
+		System.out.println("Project " + projectId + " was deleted successfully.");
 		
-		curProject = projectService.fetchProjectById(projectId);
-		
-		
+		if(Objects.nonNull(curProject) && curProject.getProjectId().equals(projectId) ) {
+			curProject = null;
 		}
 		
 		
-	
+	}
+
+	private void updateProjectDetails() {
+		if (Objects.isNull(curProject)) {
+			System.out.println("\nPlease select a project");
+			return;
+		}
+
+		String projectName = getStringInput(
+				"Enter the project name [" + curProject.getProjectName() + "]");
+		BigDecimal projectEstimatedHours = getDecimalInput(
+				"Enter the estimated hours [" + curProject.getEstimatedHours() + "]");
+		BigDecimal projectActualHours = getDecimalInput(
+				"Enter the actual hours [" + curProject.getActualHours() + "]");
+		Integer projectDifficulty = getIntInput(
+				"Enter the difficulty 1-5 [" + curProject.getDifficulty() + "]");
+		String projectNotes = getStringInput(
+				"Enter project notes [" + curProject.getNotes() + "]");
+		
+		Project project = new Project();
+			project.setProjectName(Objects.isNull(projectName) 
+					? curProject.getProjectName() : projectName);
+			
+			project.setEstimatedHours(Objects.isNull(projectEstimatedHours)
+					? curProject.getEstimatedHours() : projectEstimatedHours);
+			
+			project.setActualHours(Objects.isNull(projectActualHours)
+					? curProject.getActualHours() : projectActualHours);
+			
+			project.setDifficulty(Objects.isNull(projectDifficulty)
+					? curProject.getDifficulty() : projectDifficulty);
+			
+			project.setNotes(Objects.isNull(projectNotes)
+					? curProject.getNotes() : projectNotes);
+			
+			project.setProjectId(curProject.getProjectId());
+			
+			projectService.modifyProjectDetails(project);
+			curProject = projectService.fetchProjectById(curProject.getProjectId());
+		
+		
+	}
+
+	/*
+	 * Selects a project from the database via the project ID; First lists the
+	 * projects in alphabetical order, sets the current project to null to open up
+	 * the variable, and then runs through the service level to the DAO level to
+	 * parse the database for the correct information.
+	 */
+	private void selectProject() {
+		listProjects();
+		Integer projectId = getIntInput("Enter a project ID to select a project.");
+
+		curProject = null;
+
+		curProject = projectService.fetchProjectById(projectId);
+
+	}
 
 	/*
 	 * Lists all the current projects in the Database by ID and Name
 	 */
 	private List<Project> listProjects() {
 		List<Project> projects = projectService.fetchAllProjects();
-		
+
 		System.out.println("\nProjects:");
-		
-		projects.forEach(project -> System.out.println("   " + 
-		project.getProjectId() + ": " + project.getProjectName()));
+
+		projects.forEach(
+				project -> System.out.println("   " + project.getProjectId() + ": " + project.getProjectName()));
 		return projects;
 	}
 
@@ -194,11 +259,10 @@ private void selectProject() {
 	private void printOperations() {
 		System.out.println("\nThese are the available selections. Press the Enter key to quit:");
 		operations.forEach(line -> System.out.println("   " + line));
-		
-		if(Objects.isNull(curProject)) {
+
+		if (Objects.isNull(curProject)) {
 			System.out.println("\nYou are not working with a project.");
-		}
-		else {
+		} else {
 			System.out.println("\nYou are working with project: " + curProject);
 		}
 
